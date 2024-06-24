@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Hydrogen in Palladium Lattice Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { display: flex; }
+        #simulationCanvas { border: 1px solid black; }
+        .charts { margin-left: 20px; }
+        table { border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Advanced Hydrogen in Palladium Lattice Simulation</h1>
+    <div class="container">
+        <div>
+            <canvas id="simulationCanvas"></canvas>
+            <div>
+                <label for="hydrogenCount">Hydrogen Atoms: </label>
+                <input type="number" id="hydrogenCount" value="100" min="1" max="1000">
+                <button onclick="updateHydrogenCount()">Update</button>
+            </div>
+        </div>
+        <div class="charts">
+            <canvas id="energyChart" width="400" height="200"></canvas>
+            <canvas id="densityChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    <table id="measurementsTable">
+        <tr>
+            <th>Measurement</th>
+            <th>Value</th>
+        </tr>
+    </table>
+    <script>
+        // Constants
+        const CANVAS_WIDTH = 600;
+        const CANVAS_HEIGHT = 400;
+        const LATTICE_CONSTANT = 20;
+        const TEMPERATURE = 300; // Kelvin
+        const TUNNEL_PROBABILITY = 0.01;
+        const BOLTZMANN = 1.380649e-23; // J/K
+
+        // Simulation classes (PalladiumAtom and HydrogenAtom remain the same)
+        class PalladiumAtom {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 5;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = 'silver';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        class HydrogenAtom {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.radius = 2;
+            }
+
+            move(lattice) {
+                // Apply thermal motion
+                this.vx += (Math.random() - 0.5) * 0.1;
+                this.vy += (Math.random() - 0.5) * 0.1;
+
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Simplified boundary conditions
+                if (this.x < 0 || this.x > CANVAS_WIDTH) this.vx *= -1;
+                if (this.y < 0 || this.y > CANVAS_HEIGHT) this.vy *= -1;
+
+                // Interaction with Palladium lattice
+                for (let atom of lattice) {
+                    const dx = this.x - atom.x;
+                    const dy = this.y - atom.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < LATTICE_CONSTANT / 2) {
+                        // Simplified quantum tunneling
+                        if (Math.random() < TUNNEL_PROBABILITY) {
+                            this.x = atom.x + (Math.random() - 0.5) * LATTICE_CONSTANT;
+                            this.y = atom.y + (Math.random() - 0.5) * LATTICE_CONSTANT;
+                        } else {
+                            // Simplified Coulomb repulsion
+                            const angle = Math.atan2(dy, dx);
+                            this.vx = Math.cos(angle) * 2;
+                            this.vy = Math.sin(angle) * 2;
+                        }
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Simplified electron cloud visualization
+                ctx.strokeStyle = 'rgba(0, 0, 255, 0.1)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 3, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+
+            getKineticEnergy() {
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                return 0.5 * speed * speed; // Assuming unit mass
+            }
+        }
+
+        // Simulation setup
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        const palladiumLattice = [];
+        for (let x = LATTICE_CONSTANT; x < CANVAS_WIDTH; x += LATTICE_CONSTANT) {
+            for (let y = LATTICE_CONSTANT; y < CANVAS_HEIGHT; y += LATTICE_CONSTANT) {
+                palladiumLattice.push(new PalladiumAtom(x, y));
+            }
+        }
+
+        let hydrogenAtoms = [];
+        function createHydrogenAtoms(count) {
+            hydrogenAtoms = [];
+            for (let i = 0; i < count; i++) {
+                hydrogenAtoms.push(new HydrogenAtom(Math.random() * CANVAS_WIDTH, Math.random() * CANVAS_HEIGHT));
+            }
+        }
+        createHydrogenAtoms(100);
+
+        // Charts setup
+        const energyChart = new Chart(document.getElementById('energyChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Average Kinetic Energy',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const densityChart = new Chart(document.getElementById('densityChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Top', 'Bottom', 'Left', 'Right'],
+                datasets: [{
+                    label: 'Hydrogen Density',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Measurements
+        function updateMeasurements() {
+            const avgKineticEnergy = hydrogenAtoms.reduce((sum, atom) => sum + atom.getKineticEnergy(), 0) / hydrogenAtoms.length;
+            const temperature = avgKineticEnergy / (1.5 * BOLTZMANN);
+            
+            const top = hydrogenAtoms.filter(atom => atom.y < CANVAS_HEIGHT / 4).length;
+            const bottom = hydrogenAtoms.filter(atom => atom.y > 3 * CANVAS_HEIGHT / 4).length;
+            const left = hydrogenAtoms.filter(atom => atom.x < CANVAS_WIDTH / 4).length;
+            const right = hydrogenAtoms.filter(atom => atom.x > 3 * CANVAS_WIDTH / 4).length;
+
+            const measurements = {
+                'Average Kinetic Energy': avgKineticEnergy.toExponential(2) + ' J',
+                'Estimated Temperature': temperature.toFixed(2) + ' K',
+                'Hydrogen Count': hydrogenAtoms.length,
+                'Density (Top)': (top / (CANVAS_WIDTH * CANVAS_HEIGHT / 4)).toFixed(4) + ' atoms/px²',
+                'Density (Bottom)': (bottom / (CANVAS_WIDTH * CANVAS_HEIGHT / 4)).toFixed(4) + ' atoms/px²',
+                'Density (Left)': (left / (CANVAS_WIDTH * CANVAS_HEIGHT / 4)).toFixed(4) + ' atoms/px²',
+                'Density (Right)': (right / (CANVAS_WIDTH * CANVAS_HEIGHT / 4)).toFixed(4) + ' atoms/px²'
+            };
+
+            const table = document.getElementById('measurementsTable');
+            table.innerHTML = '<tr><th>Measurement</th><th>Value</th></tr>';
+            for (const [key, value] of Object.entries(measurements)) {
+                table.innerHTML += `<tr><td>${key}</td><td>${value}</td></tr>`;
+            }
+
+            // Update charts
+            energyChart.data.labels.push(energyChart.data.labels.length);
+            energyChart.data.datasets[0].data.push(avgKineticEnergy);
+            if (energyChart.data.labels.length > 50) {
+                energyChart.data.labels.shift();
+                energyChart.data.datasets[0].data.shift();
+            }
+            energyChart.update();
+
+            densityChart.data.datasets[0].data = [top, bottom, left, right];
+            densityChart.update();
+        }
+
+        // Animation loop
+        function animate() {
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Draw Palladium lattice
+            for (let atom of palladiumLattice) {
+                atom.draw(ctx);
+            }
+
+            // Update and draw Hydrogen atoms
+            for (let atom of hydrogenAtoms) {
+                atom.move(palladiumLattice);
+                atom.draw(ctx);
+            }
+
+            updateMeasurements();
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Update hydrogen count
+        function updateHydrogenCount() {
+            const count = parseInt(document.getElementById('hydrogenCount').value);
+            createHydrogenAtoms(count);
+        }
+    </script>
+</body>
+</html>
